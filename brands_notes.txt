@@ -1,0 +1,42 @@
+Brands list : Suzuki, Yamaha, Honda, BMW, Kawasaki
+
+Common information on each brand :
+
+TARIF
+
+TYPE
+
+MOTEUR :
+Nb cylindres 
+Refroidissement
+Distribution
+Cylindrée
+Rapport vomumétrique
+Admission
+Démarreur
+Couple maxi
+
+TRANSMISSION :
+Nombre de rapports
+Embrayage
+Transmission finale
+
+PARTIE CYCLE
+Cadre
+Angle de chasse
+Chasse
+Empattement
+Suspension avant
+Suspension arrière
+Frein avant
+Frein arrière
+Pneu avant
+Pneu arrière
+
+CARACTERISTIQUES :
+L x l x H 
+Hauteur de selle
+Garde au sol
+Capacité du réservoir d'essence 
+Capacité du réservoir d'huile
+Poids
