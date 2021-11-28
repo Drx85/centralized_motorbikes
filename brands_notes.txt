@@ -40,3 +40,5 @@ Garde au sol
 Capacité du réservoir d'essence 
 Capacité du réservoir d'huile
 Poids
+
+/html/body/article/div[1]/div/div/section/div[4]/div/div[2]/section[1]/table/tbody/tr[1]/td[2]
