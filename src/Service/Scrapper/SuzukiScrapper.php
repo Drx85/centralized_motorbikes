@@ -4,9 +4,9 @@ namespace App\Service\Scrapper;
 
 use Goutte\Client;
 
-class Suzuki
+class SuzukiScrapper
 {
-	public function __construct()
+	public function getArray(): array
 	{
 		$client = new Client();
 		$crawler = $client->request('GET', 'https://www.suzuki-moto.com');
@@ -29,8 +29,7 @@ class Suzuki
 				return $node->text();
 			});
 		}
-		$motos = $this->mergeArrays($motos, $characteristicNames);
-		dd($motos);
+		return $this->mergeArrays($motos, $characteristicNames);
 	}
 	
 	/**
@@ -64,8 +63,8 @@ class Suzuki
 	private function mergeArrays(array $motos, array $characteristicNames): array
 	{
 		$keys = array_keys($motos);
-		for ($i = 0; $i < count($motos); $i++) {
-			foreach ($motos[$keys[$i]]['characteristics'] as $ignored) {
+		foreach ($motos as $moto) {
+			foreach ($moto['characteristics'] as $ignored) {
 				$c = 0;
 				foreach ($keys as $value) {
 					$motos[$keys[$c]]['characteristics'] = array_combine($characteristicNames[$value], $motos[$keys[$c]]['characteristics']);
