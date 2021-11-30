@@ -13,7 +13,9 @@ Distribution
 Cylindrée
 Rapport vomumétrique
 Démarreur
+Puissance
 Couple maxi
+Consommation d'essence
 
 TRANSMISSION :
 Nombre de rapports

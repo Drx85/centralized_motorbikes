@@ -3,9 +3,11 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 /**
  * @ORM\Entity(repositoryClass=MotoRepository::class)
+ * @UniqueEntity("name")
  */
 class Moto
 {
@@ -87,7 +89,7 @@ class Moto
     private $casterTrail;
 
     /**
-     * @ORM\Column(type="integer", nullable=true)
+     * @ORM\Column(type="string", nullable=true)
      */
     private $wheelbase;
 
@@ -182,6 +184,13 @@ class Moto
     {
         return $this->id;
     }
+	
+	public function setId(int $id): self
+	{
+		$this->id = $id;
+		
+		return $this;
+	}
 
     public function getName(): ?string
     {

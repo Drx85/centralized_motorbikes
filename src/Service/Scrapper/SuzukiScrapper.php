@@ -6,6 +6,11 @@ use Goutte\Client;
 
 class SuzukiScrapper
 {
+	/**
+	 * Scrap all Suzuki motos specs on their website and return corresponding array.
+	 *
+	 * @return array
+	 */
 	public function getArray(): array
 	{
 		$client = new Client();
@@ -34,6 +39,7 @@ class SuzukiScrapper
 	
 	/**
 	 * Return the type of moto, depending on what contains the given URL.
+	 *
 	 * 'special' is default value.
 	 *
 	 * @param string $link
@@ -53,7 +59,7 @@ class SuzukiScrapper
 	}
 	
 	/**
-	 * Add to the array which contains moto characteristics the name of these characteristics, thanks to another array
+	 * Add to the array which contains moto characteristics the name of these characteristics, thanks to another array.
 	 *
 	 * @param array $motos
 	 * @param array $characteristicNames
