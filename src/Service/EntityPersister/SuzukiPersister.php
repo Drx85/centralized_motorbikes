@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service\EntityConstructor;
+namespace App\Service\EntityPersister;
 
 use App\Entity\Moto;
 use App\Repository\BrandRepository;
@@ -9,10 +9,10 @@ use App\Repository\TypeRepository;
 use App\Service\Scrapper\SuzukiScrapper;
 use Doctrine\ORM\EntityManagerInterface;
 
-class SuzukiConstructor
+class SuzukiPersister
 {
 	private mixed $scrappedSuzuki;
-	private Moto|array $suzuki;
+	private array $suzuki;
 	
 	public function __construct(SuzukiScrapper         $suzukiScrapper,
 								EntityManagerInterface $manager,
@@ -24,12 +24,14 @@ class SuzukiConstructor
 		$scrappedSuzukies = $suzukiScrapper->getArray();
 		
 		foreach ($scrappedSuzukies as $key => $this->scrappedSuzuki) {
-			$this->suzuki = new Moto();
-			$this->suzuki->setBrand($brandRepository->findOneBy(array('name' => 'Suzuki')));
-			$this->suzuki->setType($typeRepository->findOneBy(array('name' => $this->scrappedSuzuki['type'])));
-			$this->suzuki->setName($key);
+			$this->suzuki = [
+				'Name' => $key,
+				'Brand' => $brandRepository->findOneBy(array('name' => 'Suzuki')),
+				'Type' => $typeRepository->findOneBy(array('name' => $this->scrappedSuzuki['type']))
+				];
 			
 			$this->addSpecsNeedTreatment();
+			
 			$this->addSpecs([
 				'EngineDistribution' => 'Distribution :',
 				'VolumetricRatio'    => 'Rapport Volumétrique :',
@@ -58,22 +60,16 @@ class SuzukiConstructor
 				'Weight'             => 'Poids :'
 			]);
 			
-			$oldMoto = $motoRepository->findOneBy(array('name' => $this->suzuki->getName()));
+			$oldMoto = $motoRepository->findOneBy(array('name' => $this->suzuki['Name']));
 			
 			if ($oldMoto instanceof Moto) {
-				if ($this->suzuki->getName() === $oldMoto->getName()) {
-					$this->suzuki->setId($oldMoto->getId());
-					if ($this->suzuki != $oldMoto) {
-//TODO: Update in DB existing Moto entity
-
-//						$manager->persist($this->suzuki);
-					}
-				}
+				$this->fillEntity($oldMoto);
 			} else {
-				$manager->persist($this->suzuki);
+				$newSuzuki = new Moto();
+				$this->fillEntity($newSuzuki);
+				$manager->persist($newSuzuki);
 			}
 		}
-		
 		$manager->flush();
 		dd($scrappedSuzukies);
 	}
@@ -81,19 +77,31 @@ class SuzukiConstructor
 	/**
 	 * Fill Moto entity using the given array specs.
 	 *
+	 * @param Moto $entity
+	 */
+	private function fillEntity(Moto $entity): void
+	{
+		foreach ($this->suzuki as $key => $spec) {
+			$setterName = 'set' . $key;
+			$entity->$setterName($spec);
+		}
+	}
+	
+	/**
+	 * Fill Moto array corresponding to Moto entity structure, using the given array specs.
+	 *
 	 * @param array $specs
 	 */
 	private function addSpecs(array $specs): void
 	{
 		foreach ($specs as $key => $spec) {
-			$setterName = 'set' . $key;
 			$spec = array_key_exists($spec, $this->scrappedSuzuki['characteristics']) ? $this->scrappedSuzuki['characteristics'][$spec] : 0;
-			if ($spec) $this->suzuki->$setterName($spec);
+			if ($spec) $this->suzuki[$key] = $spec;
 		}
 	}
 	
 	/**
-	 * Fill Moto entity from data which need specifics treatments.
+	 * Fill Moto array from data which need specifics treatments.
 	 *
 	 * Create new function for each specific treatment and call it in this function.
 	 *
@@ -114,7 +122,7 @@ class SuzukiConstructor
 			preg_match('#monocylindre#i', $engine) => 1,
 			default => 0
 		};
-		if ($cylinders) $this->suzuki->setCylinder($cylinders);
+		if ($cylinders) $this->suzuki['Cylinder'] = $cylinders;
 	}
 	
 	private function addEngineCooling(string $engine): void
@@ -124,7 +132,7 @@ class SuzukiConstructor
 			preg_match('#refroidissement.par.ai#i', $engine) => 'Par air',
 			default => 0
 		};
-		if ($engineCooling) $this->suzuki->setEngineCooling($engineCooling);
+		if ($engineCooling) $this->suzuki['EngineCooling'] = $engineCooling;
 	}
 	
 	private function addPrice(): void
@@ -132,7 +140,7 @@ class SuzukiConstructor
 		foreach ($this->scrappedSuzuki['characteristics'] as $value) {
 			if (str_contains($value, '€')) {
 				$value = preg_replace('#[^0-9.]#', '', $value);
-				$this->suzuki->setPrice((int)$value);
+				$this->suzuki['Price'] = (int) $value;
 				break;
 			}
 		}
