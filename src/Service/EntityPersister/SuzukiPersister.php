@@ -8,27 +8,33 @@ use App\Repository\MotoRepository;
 use App\Repository\TypeRepository;
 use App\Service\Scrapper\SuzukiScrapper;
 use Doctrine\ORM\EntityManagerInterface;
+use JetBrains\PhpStorm\NoReturn;
 
 class SuzukiPersister
 {
+	private array $scrappedSuzukies;
 	private mixed $scrappedSuzuki;
 	private array $suzuki;
 	
-	public function __construct(SuzukiScrapper         $suzukiScrapper,
-								EntityManagerInterface $manager,
-								MotoRepository         $motoRepository,
-								BrandRepository        $brandRepository,
-								TypeRepository         $typeRepository
+	public function __construct(
+		SuzukiScrapper                 $suzukiScrapper,
+		private EntityManagerInterface $manager,
+		private MotoRepository         $motoRepository,
+		private BrandRepository        $brandRepository,
+		private TypeRepository         $typeRepository
 	)
 	{
-		$scrappedSuzukies = $suzukiScrapper->getArray();
-		
-		foreach ($scrappedSuzukies as $key => $this->scrappedSuzuki) {
+		$this->scrappedSuzukies = $suzukiScrapper->getArray();
+	}
+	
+	#[NoReturn] public function updateFromScrappedData()
+	{
+		foreach ($this->scrappedSuzukies as $key => $this->scrappedSuzuki) {
 			$this->suzuki = [
-				'Name' => $key,
-				'Brand' => $brandRepository->findOneBy(array('name' => 'Suzuki')),
-				'Type' => $typeRepository->findOneBy(array('name' => $this->scrappedSuzuki['type']))
-				];
+				'Name'  => $key,
+				'Brand' => $this->brandRepository->findOneBy(array('name' => 'Suzuki')),
+				'Type'  => $this->typeRepository->findOneBy(array('name' => $this->scrappedSuzuki['type']))
+			];
 			
 			$this->addSpecsNeedTreatment();
 			
@@ -60,22 +66,22 @@ class SuzukiPersister
 				'Weight'             => 'Poids :'
 			]);
 			
-			$oldMoto = $motoRepository->findOneBy(array('name' => $this->suzuki['Name']));
+			$oldMoto = $this->motoRepository->findOneBy(array('name' => $this->suzuki['Name']));
 			
 			if ($oldMoto instanceof Moto) {
 				$this->fillEntity($oldMoto);
 			} else {
 				$newSuzuki = new Moto();
 				$this->fillEntity($newSuzuki);
-				$manager->persist($newSuzuki);
+				$this->manager->persist($newSuzuki);
 			}
 		}
-		$manager->flush();
-		dd($scrappedSuzukies);
+		$this->manager->flush();
+		dd($this->scrappedSuzukies);
 	}
 	
 	/**
-	 * Fill Moto entity using the given array specs.
+	 * Fill Moto entity of this class, using the given Moto entity.
 	 *
 	 * @param Moto $entity
 	 */
@@ -90,6 +96,8 @@ class SuzukiPersister
 	/**
 	 * Fill Moto array corresponding to Moto entity structure, using the given array specs.
 	 *
+	 * Each key of the array specs must correspond to a Moto entity attribute.
+	 *
 	 * @param array $specs
 	 */
 	private function addSpecs(array $specs): void
@@ -101,9 +109,9 @@ class SuzukiPersister
 	}
 	
 	/**
-	 * Fill Moto array from data which need specifics treatments.
+	 * Fill array Moto from data which need specifics treatments.
 	 *
-	 * Create new function for each specific treatment and call it in this function.
+	 * To use it : create new function for each specific treatment and call it in this function.
 	 *
 	 */
 	private function addSpecsNeedTreatment(): void
@@ -137,10 +145,14 @@ class SuzukiPersister
 	
 	private function addPrice(): void
 	{
+		if (!preg_grep('#€#', $this->scrappedSuzuki['characteristics'])) {
+			$this->suzuki['Price'] = 0;
+			return;
+		}
 		foreach ($this->scrappedSuzuki['characteristics'] as $value) {
 			if (str_contains($value, '€')) {
 				$value = preg_replace('#[^0-9.]#', '', $value);
-				$this->suzuki['Price'] = (int) $value;
+				$this->suzuki['Price'] = (int)$value;
 				break;
 			}
 		}

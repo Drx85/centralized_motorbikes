@@ -12,6 +12,6 @@ class DefaultController extends AbstractController
 	#[Route('/', name: 'test-suzuki-scrapping')]
 	public function index(SuzukiPersister $suzuki)
 	{
-	
+		$suzuki->updateFromScrappedData();
 	}
 }

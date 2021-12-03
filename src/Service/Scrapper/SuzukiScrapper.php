@@ -34,6 +34,7 @@ class SuzukiScrapper
 				return $node->text();
 			});
 		}
+		
 		return $this->mergeArrays($motos, $characteristicNames);
 	}
 	
@@ -78,6 +79,7 @@ class SuzukiScrapper
 				}
 			}
 		}
+		
 		return $motos;
 	}
 }
