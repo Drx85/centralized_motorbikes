@@ -6,6 +6,8 @@ use Goutte\Client;
 
 class SuzukiScrapper
 {
+	private Client $client;
+	
 	/**
 	 * Scrap all Suzuki motos specs on their website and return corresponding array.
 	 *
@@ -13,16 +15,10 @@ class SuzukiScrapper
 	 */
 	public function getArray(): array
 	{
-		$client = new Client();
-		$crawler = $client->request('GET', 'https://www.suzuki-moto.com');
-		$links = $crawler->filter('div.block-category.model > a')->each(function ($node) {
-			$link = $node->attr('href');
-			if (str_contains($link, '/scooters')) return;
-			return $link;
-		});
-		
-		foreach (array_filter($links) as $link) {
-			$crawler = $client->request('GET', 'https://www.suzuki-moto.com/' . $link);
+		$this->client = new Client();
+		$categoryLinks = $this->getLinks();
+		foreach (array_filter($categoryLinks) as $link) {
+			$crawler = $this->client->request('GET', 'https://www.suzuki-moto.com/' . $link);
 			$name = $crawler->filter('.essentiel.desktop')->text();
 			$motos[$name]['type'] = $this->getType($link);
 			
@@ -36,6 +32,22 @@ class SuzukiScrapper
 		}
 		
 		return $this->mergeArrays($motos, $characteristicNames);
+	}
+	
+	/**
+	 * Return an array of moto Category links to be scrapped.
+	 *
+	 * @return array
+	 */
+	private function getLinks(): array
+	{
+		$crawler = $this->client->request('GET', 'https://www.suzuki-moto.com');
+		
+		return $crawler->filter('div.block-category.model > a')->each(function ($node) {
+			$link = $node->attr('href');
+			if (str_contains($link, '/scooters')) return;
+			return $link;
+		});
 	}
 	
 	/**

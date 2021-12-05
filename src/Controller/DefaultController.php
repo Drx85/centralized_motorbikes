@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Service\EntityPersister\SuzukiPersister;
+use App\Service\Scrapper\KawasakiScrapper;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -10,8 +11,8 @@ use Symfony\Component\Routing\Annotation\Route;
 class DefaultController extends AbstractController
 {
 	#[Route('/', name: 'test-suzuki-scrapping')]
-	public function index(SuzukiPersister $suzuki)
+	public function index(KawasakiScrapper $kawasakiScrapper)
 	{
-		$suzuki->updateFromScrappedData();
+		$kawasakiScrapper->getArray();
 	}
 }
