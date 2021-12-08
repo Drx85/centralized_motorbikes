@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use App\Service\EntityPersister\SuzukiPersister;
 use App\Service\Scrapper\KawasakiScrapper;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Routing\Annotation\Route;

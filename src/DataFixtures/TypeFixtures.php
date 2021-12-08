@@ -10,7 +10,7 @@ class TypeFixtures extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
-		$types = array('trail', 'sporty', 'roadster', '125', 'offroad', 'special');
+		$types = array('trail', 'sporty', 'roadster', '125', 'offroad', 'special', 'vintage', 'street', 'custom');
 		foreach ($types as $name) {
 			$type = new Type();
 			$type->setName($name);

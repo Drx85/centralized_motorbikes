@@ -2,12 +2,29 @@
 
 namespace App\Service\Scrapper;
 
+use Facebook\WebDriver\WebDriver;
 use Facebook\WebDriver\WebDriverBy;
 use Symfony\Component\Panther\Client;
 
 class KawasakiScrapper
 {
 	private Client $client;
+	private WebDriver $driver;
+	private array $links = [];
+	
+	/**
+	 * An associative array where the key is the li xpath hierarchy identifier of the corresponding category as value.
+	 *
+	 * @var array
+	 */
+	private array $categories = [
+		2 => 'sporties',
+		3 => 'roadsters',
+		4 => 'vintages',
+		5 => 'streets',
+		6 => 'trails',
+		7 => 'customs'
+	];
 	
 	/**
 	 * Scrap all Kawasaki motos specs on their website and return corresponding array.
@@ -18,86 +35,77 @@ class KawasakiScrapper
 	{
 		$this->client = Client::createChromeClient(__DIR__ . '/../../../drivers/chromedriver.exe');
 		$this->client->request('GET', 'https://www.kawasaki.fr/fr/products');
-		$driver = $this->client->getWebDriver();
+		$this->driver = $this->client->getWebDriver();
 		
 		$this->client->manage()->timeouts()->implicitlyWait(10);
-		$driver->findElement(WebDriverBy::id('aAgreeCookie'))->click();
+		$this->driver->findElement(WebDriverBy::id('aAgreeCookie'))->click();
 		usleep(100000);
-		$driver->findElement(WebDriverBy::className('knm-mobile__burger'))->click();
+		$this->driver->findElement(WebDriverBy::className('knm-mobile__burger'))->click();
 		usleep(100000);
-		$driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/a/span/i'))->click();
+		$this->driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/a/span/i'))->click();
 		usleep(100000);
-		$driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/a/span/i'))->click();
+		$this->driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/a/span/i'))->click();
 		usleep(100000);
-		$driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/ul/li[1]'))->click();
+		$this->driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/ul/li[1]'))->click();
 		
-		$links = [];
+		$this->getLinks();
+		$this->sanitizeLinks();
 		
-		usleep(100000);
-		$hypersporties = $driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/ul/li[1]/div/div/div'));
-		$hypersporties = $hypersporties->findElements(WebDriverBy::tagName('a'));
-		
-		foreach ($hypersporties as $link)
-		{
-			$links[] = $link->getAttribute('href');
+		foreach ($this->links as $link) {
+			$name = $this->getName($link);
+			$motos[$name]['type'] = $this->getType($link);
 		}
-		
-		usleep(100000);
-		$sporties = $driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/ul/li[2]'))->click();
-		$sporties = $sporties->findElements(WebDriverBy::tagName('a'));
-		
-		foreach ($sporties as $sporty) {
-			$links[] = $sporty->getAttribute('href');
+		dd($motos);
+	}
+	
+	/**
+	 * Update links array scrapped with $i value which represents each category identifier in xpath.
+	 *
+	 * @return void
+	 */
+	private function getLinks(): void
+	{
+		for ($i = 2; $i <= 7; $i++) {
+			usleep(100000);
+			$motos = $this->driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/ul/li[' . $i . ']'))->click();
+			$motos = $motos->findElements(WebDriverBy::tagName('a'));
+			
+			foreach ($motos as $moto) {
+				$this->links[] = $moto->getAttribute('href');
+			}
 		}
-		
-		usleep(100000);
-		$roadsters = $driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/ul/li[3]'))->click();
-		$roadsters = $roadsters->findElements(WebDriverBy::tagName('a'));
-		
-		foreach ($roadsters as $roadster) {
-			$links[] = $roadster->getAttribute('href');
+	}
+	
+	private function getName(string $link): string
+	{
+		preg_match("#^\/\/www.kawasaki.fr\/fr\/products\/[^\/]*\/[^\/]*\/([^\/]*)#", $link,$matches);
+		return preg_replace('#_#', ' ', $matches[1]);
+	}
+	
+	private function getType(string $link): string
+	{
+		return match (true) {
+			str_contains($link, 'Trails') => 'trail',
+			str_contains($link, 'Sportives') => 'sporty',
+			str_contains($link, 'Roadsters') => 'roadster',
+			str_contains($link, 'Z900') => 'vintage',
+			str_contains($link, 'Routières') => 'street',
+			str_contains($link, 'Customs') => 'custom',
+			default => 'special',
+		};
+	}
+	
+	/**
+	 * Delete empty and duplicated lines in the links array.
+	 *
+	 * @return void
+	 */
+	private function sanitizeLinks(): void
+	{
+		$this->links = array_unique($this->links);
+		foreach ($this->links as $key => $link) {
+			if (!preg_match('#^\/\/www.kawasaki.fr\/fr\/products\/[^\/]*\/#', $link)) unset($this->links[$key]);
 		}
-		
-		usleep(100000);
-		$vintages = $driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/ul/li[4]'))->click();
-		$vintages = $vintages->findElements(WebDriverBy::tagName('a'));
-		
-		foreach ($vintages as $vintage) {
-			$links[] = $vintage->getAttribute('href');
-		}
-		
-		usleep(100000);
-		$streets = $driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/ul/li[5]'))->click();
-		$streets = $streets->findElements(WebDriverBy::tagName('a'));
-		
-		foreach ($streets as $street) {
-			$links[] = $street->getAttribute('href');
-		}
-		
-		usleep(100000);
-		$trails = $driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/ul/li[6]'))->click();
-		$trails = $trails->findElements(WebDriverBy::tagName('a'));
-		
-		foreach ($trails as $trail) {
-			$links[] = $trail->getAttribute('href');
-		}
-		
-		usleep(100000);
-		$customs = $driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/ul/li[7]'))->click();
-		$customs = $customs->findElements(WebDriverBy::tagName('a'));
-		
-		foreach ($customs as $custom) {
-			$links[] = $custom->getAttribute('href');
-		}
-		
-		usleep(100000);
-		$a2s = $driver->findElement(WebDriverBy::xpath('/html/body/nav/div/ul/li[1]/ul/li[1]/ul/li[8]'))->click();
-		$a2s = $a2s->findElements(WebDriverBy::tagName('a'));
-		
-		foreach ($a2s as $a2) {
-			$links[] = $a2->getAttribute('href');
-		}
-
-		dd($links);
+		$this->links = array_filter($this->links);
 	}
 }
