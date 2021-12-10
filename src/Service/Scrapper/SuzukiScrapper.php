@@ -4,7 +4,7 @@ namespace App\Service\Scrapper;
 
 use Goutte\Client;
 
-class SuzukiScrapper
+class SuzukiScrapper extends AbstractScrapper
 {
 	private Client $client;
 	
@@ -31,7 +31,7 @@ class SuzukiScrapper
 			});
 		}
 		
-		return $this->mergeArrays($motos, $characteristicNames);
+		dd($this->mergeArrays($motos, $characteristicNames));
 	}
 	
 	/**
@@ -69,29 +69,5 @@ class SuzukiScrapper
 			str_contains($link, 'tout-terrain') => 'offroad',
 			default => 'special',
 		};
-	}
-	
-	/**
-	 * Add to the array which contains moto characteristics the name of these characteristics, thanks to another array.
-	 *
-	 * @param array $motos
-	 * @param array $characteristicNames
-	 *
-	 * @return array
-	 */
-	private function mergeArrays(array $motos, array $characteristicNames): array
-	{
-		$keys = array_keys($motos);
-		foreach ($motos as $moto) {
-			foreach ($moto['characteristics'] as $ignored) {
-				$c = 0;
-				foreach ($keys as $value) {
-					$motos[$keys[$c]]['characteristics'] = array_combine($characteristicNames[$value], $motos[$keys[$c]]['characteristics']);
-					$c++;
-				}
-			}
-		}
-		
-		return $motos;
 	}
 }
