@@ -20,4 +20,8 @@ Abstract class AbstractScrapper
 		
 		return $motos;
 	}
+	
+	protected abstract function getArray();
+	protected abstract function getLinks();
+	protected abstract function getType(string $links);
 }

@@ -4,7 +4,7 @@ namespace App\Service\Scrapper;
 
 use Goutte\Client;
 
-class SuzukiScrapper extends AbstractScrapper
+final class SuzukiScrapper extends AbstractScrapper
 {
 	private Client $client;
 	
@@ -31,7 +31,7 @@ class SuzukiScrapper extends AbstractScrapper
 			});
 		}
 		
-		dd($this->mergeArrays($motos, $characteristicNames));
+		return $this->mergeArrays($motos, $characteristicNames);
 	}
 	
 	/**
@@ -39,7 +39,7 @@ class SuzukiScrapper extends AbstractScrapper
 	 *
 	 * @return array
 	 */
-	private function getLinks(): array
+	protected function getLinks(): array
 	{
 		$crawler = $this->client->request('GET', 'https://www.suzuki-moto.com');
 		
@@ -59,7 +59,7 @@ class SuzukiScrapper extends AbstractScrapper
 	 *
 	 * @return string
 	 */
-	private function getType(string $link): string
+	protected function getType(string $link): string
 	{
 		return match (true) {
 			str_contains($link, 'trails-routiers') => 'trail',

@@ -2,7 +2,6 @@
 
 namespace App\Service\EntityPersister;
 
-use App\Entity\Moto;
 use App\Repository\BrandRepository;
 use App\Repository\MotoRepository;
 use App\Repository\TypeRepository;
@@ -10,102 +9,62 @@ use App\Service\Scrapper\SuzukiScrapper;
 use Doctrine\ORM\EntityManagerInterface;
 use JetBrains\PhpStorm\NoReturn;
 
-class SuzukiPersister
+final class SuzukiPersister extends AbstractPersister
 {
-	private array $scrappedSuzukies;
-	private mixed $scrappedSuzuki;
-	private array $suzuki;
+	protected array $specs = [
+		'EngineDistribution' => 'Distribution :',
+		'VolumetricRatio'    => 'Rapport Volumétrique :',
+		'Starter'            => 'Démarreur :',
+		'HorsePower'         => 'Puissance annoncée :',
+		'FuelSystem'         => 'Alimentation :',
+		'FuelConsumption'    => 'Consommation :',
+		'MaxTorque'          => 'Couple Annoncé :',
+		'GearNumber'         => 'Boite :',
+		'Clutch'             => 'Embrayage :',
+		'Frame'              => 'Cadre :',
+		'CasterAngle'        => 'Angle de chasse :',
+		'CasterTrail'        => 'Chasse :',
+		'Wheelbase'          => 'Empattement :',
+		'FrontSuspension'    => 'Suspension avant :',
+		'RearSuspension'     => 'Suspension arrière :',
+		'FrontBrake'         => 'Frein avant :',
+		'RearBrake'          => 'Frein arrière :',
+		'FrontTire'          => 'Pneu avant :',
+		'BackTire'           => 'Pneu arrière :',
+		'LxlxH'              => 'L x l x H :',
+		'SeatHeight'         => 'Hauteur de selle :',
+		'GroundClearance'    => 'Garde au sol :',
+		'FuelCapacity'       => 'Essence :',
+		'OilCapacity'        => 'Huile :',
+		'Weight'             => 'Poids :'
+	];
 	
 	public function __construct(
-		SuzukiScrapper                 $suzukiScrapper,
-		private EntityManagerInterface $manager,
-		private MotoRepository         $motoRepository,
-		private BrandRepository        $brandRepository,
-		private TypeRepository         $typeRepository
+		protected SuzukiScrapper 		 $suzukiScrapper,
+		protected EntityManagerInterface $manager,
+		protected MotoRepository         $motoRepository,
+		protected BrandRepository        $brandRepository,
+		protected TypeRepository         $typeRepository
 	)
 	{
-		$this->scrappedSuzukies = $suzukiScrapper->getArray();
+		$this->scrappedMotos = $suzukiScrapper->getArray();
 	}
 	
 	#[NoReturn] public function updateFromScrappedData()
 	{
-		foreach ($this->scrappedSuzukies as $key => $this->scrappedSuzuki) {
-			$this->suzuki = [
+		foreach ($this->scrappedMotos as $key => $this->scrappedMoto) {
+			$this->moto = [
 				'Name'  => $key,
 				'Brand' => $this->brandRepository->findOneBy(array('name' => 'Suzuki')),
-				'Type'  => $this->typeRepository->findOneBy(array('name' => $this->scrappedSuzuki['type']))
+				'Type'  => $this->typeRepository->findOneBy(array('name' => $this->scrappedMoto['type']))
 			];
 			
 			$this->addSpecsNeedTreatment();
-			
-			$this->addSpecs([
-				'EngineDistribution' => 'Distribution :',
-				'VolumetricRatio'    => 'Rapport Volumétrique :',
-				'Starter'            => 'Démarreur :',
-				'HorsePower'         => 'Puissance annoncée :',
-				'FuelSystem'         => 'Alimentation :',
-				'FuelConsumption'    => 'Consommation :',
-				'MaxTorque'          => 'Couple Annoncé :',
-				'GearNumber'         => 'Boite :',
-				'Clutch'             => 'Embrayage :',
-				'Frame'              => 'Cadre :',
-				'CasterAngle'        => 'Angle de chasse :',
-				'CasterTrail'        => 'Chasse :',
-				'Wheelbase'          => 'Empattement :',
-				'FrontSuspension'    => 'Suspension avant :',
-				'RearSuspension'     => 'Suspension arrière :',
-				'FrontBrake'         => 'Frein avant :',
-				'RearBrake'          => 'Frein arrière :',
-				'FrontTire'          => 'Pneu avant :',
-				'BackTire'           => 'Pneu arrière :',
-				'LxlxH'              => 'L x l x H :',
-				'SeatHeight'         => 'Hauteur de selle :',
-				'GroundClearance'    => 'Garde au sol :',
-				'FuelCapacity'       => 'Essence :',
-				'OilCapacity'        => 'Huile :',
-				'Weight'             => 'Poids :'
-			]);
-			
-			$oldMoto = $this->motoRepository->findOneBy(array('name' => $this->suzuki['Name']));
-			
-			if ($oldMoto instanceof Moto) {
-				$this->fillEntity($oldMoto);
-			} else {
-				$newSuzuki = new Moto();
-				$this->fillEntity($newSuzuki);
-				$this->manager->persist($newSuzuki);
-			}
+			$this->addSpecs($this->specs);
+			$this->updateOrCreateMoto();
 		}
 		$this->manager->flush();
-		dd($this->scrappedSuzukies);
-	}
-	
-	/**
-	 * Fill Moto entity of this class, using the given Moto entity.
-	 *
-	 * @param Moto $entity
-	 */
-	private function fillEntity(Moto $entity): void
-	{
-		foreach ($this->suzuki as $key => $spec) {
-			$setterName = 'set' . $key;
-			$entity->$setterName($spec);
-		}
-	}
-	
-	/**
-	 * Fill Moto array corresponding to Moto entity structure, using the given array specs.
-	 *
-	 * Each key of the array specs must correspond to a Moto entity attribute.
-	 *
-	 * @param array $specs
-	 */
-	private function addSpecs(array $specs): void
-	{
-		foreach ($specs as $key => $spec) {
-			$spec = array_key_exists($spec, $this->scrappedSuzuki['characteristics']) ? $this->scrappedSuzuki['characteristics'][$spec] : 0;
-			if ($spec) $this->suzuki[$key] = $spec;
-		}
+		dd($this->scrappedMotos);
 	}
 	
 	/**
@@ -114,9 +73,9 @@ class SuzukiPersister
 	 * To use it : create new function for each specific treatment and call it in this function.
 	 *
 	 */
-	private function addSpecsNeedTreatment(): void
+	protected function addSpecsNeedTreatment(): void
 	{
-		$engine = array_key_exists('Type :', $this->scrappedSuzuki['characteristics']) ? $this->scrappedSuzuki['characteristics']['Type :'] : '';
+		$engine = array_key_exists('Type :', $this->scrappedMoto['characteristics']) ? $this->scrappedMoto['characteristics']['Type :'] : '';
 		$this->addCylinders($engine);
 		$this->addEngineCooling($engine);
 		$this->addPrice();
@@ -130,7 +89,7 @@ class SuzukiPersister
 			preg_match('#monocylindre#i', $engine) => 1,
 			default => 0
 		};
-		if ($cylinders) $this->suzuki['Cylinder'] = $cylinders;
+		if ($cylinders) $this->moto['Cylinder'] = $cylinders;
 	}
 	
 	private function addEngineCooling(string $engine): void
@@ -140,19 +99,19 @@ class SuzukiPersister
 			preg_match('#refroidissement.par.ai#i', $engine) => 'Par air',
 			default => 0
 		};
-		if ($engineCooling) $this->suzuki['EngineCooling'] = $engineCooling;
+		if ($engineCooling) $this->moto['EngineCooling'] = $engineCooling;
 	}
 	
 	private function addPrice(): void
 	{
-		if (!preg_grep('#€#', $this->scrappedSuzuki['characteristics'])) {
-			$this->suzuki['Price'] = 0;
+		if (!preg_grep('#€#', $this->scrappedMoto['characteristics'])) {
+			$this->moto['Price'] = 0;
 			return;
 		}
-		foreach ($this->scrappedSuzuki['characteristics'] as $value) {
+		foreach ($this->scrappedMoto['characteristics'] as $value) {
 			if (str_contains($value, '€')) {
 				$value = preg_replace('#[^0-9.]#', '', $value);
-				$this->suzuki['Price'] = (int)$value;
+				$this->moto['Price'] = (int)$value;
 				break;
 			}
 		}

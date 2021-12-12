@@ -6,7 +6,7 @@ use Facebook\WebDriver\WebDriver;
 use Facebook\WebDriver\WebDriverBy;
 use Symfony\Component\Panther\Client;
 
-class KawasakiScrapper extends AbstractScrapper
+final class KawasakiScrapper extends AbstractScrapper
 {
 	private WebDriver $driver;
 	private array $links = [];
@@ -54,8 +54,8 @@ class KawasakiScrapper extends AbstractScrapper
 				return $node->text();
 			});
 		}
-		$a = $this->mergeArrays($motos, $characteristicNames);
-		dd($a);
+		
+		return $this->mergeArrays($motos, $characteristicNames);
 	}
 	
 	/**
@@ -63,7 +63,7 @@ class KawasakiScrapper extends AbstractScrapper
 	 *
 	 * @return void
 	 */
-	private function getLinks(): void
+	protected function getLinks(): void
 	{
 		for ($i = 2; $i <= 7; $i++) {
 			usleep(200000);
@@ -83,7 +83,7 @@ class KawasakiScrapper extends AbstractScrapper
 		return preg_replace('#_#', ' ', $matches[1]);
 	}
 	
-	private function getType(string $link): string
+	protected function getType(string $link): string
 	{
 		return match (true) {
 			str_contains($link, 'Trails') => 'trail',
